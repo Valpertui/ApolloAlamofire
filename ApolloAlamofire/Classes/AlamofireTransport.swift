@@ -17,30 +17,16 @@ public class AlamofireTransport: NetworkTransport {
   let url: URL
   public var headers: HTTPHeaders?
   public var loggingEnabled: Bool
-  public var clientName: String
-  public var clientVersion: String
 
-  public init(
-    url: URL,
-    sessionManager: SessionManager = SessionManager.default,
-    headers: HTTPHeaders? = nil,
-    loggingEnabled: Bool = false,
-    clientName: String = "ApolloAlamofire",
-    clientVersion: String = "0.6.0"
-  ) {
+  public init(url: URL, sessionManager: SessionManager = SessionManager.default,
+              headers: HTTPHeaders? = nil, loggingEnabled: Bool = false) {
     self.sessionManager = sessionManager
     self.url = url
     self.headers = headers
     self.loggingEnabled = loggingEnabled
-    self.clientName = clientName
-    self.clientVersion = clientVersion
   }
 
-  public func send<Operation>(
-    operation: Operation,
-    completionHandler: @escaping (Swift.Result<GraphQLResponse<Operation>, Error>) -> ()
-  )
-    -> Cancellable where Operation: GraphQLOperation {
+  public func send<Operation>(operation: Operation, completionHandler: @escaping (Swift.Result<GraphQLResponse<Operation>, Error>) -> Void) -> Cancellable where Operation : GraphQLOperation {
     let vars: JSONEncodable = operation.variables?.mapValues { $0?.jsonValue }
     let body: Parameters = [
       "query": operation.queryDocument,
@@ -54,7 +40,7 @@ public class AlamofireTransport: NetworkTransport {
       debugPrint(request)
     }
     return request.responseJSON { response in
-      let result = response.result
+      let gqlResult = response.result
         .flatMap { value -> GraphQLResponse<Operation> in
           guard let value = value as? JSONObject else {
             throw response.error!
@@ -65,13 +51,11 @@ public class AlamofireTransport: NetworkTransport {
           }
           return GraphQLResponse(operation: operation, body: value)
         }
-
-      switch result {
-      case let .failure(error):
-        completionHandler(.failure(error))
-      case let .success(value):
-        completionHandler(.success(value))
-      }
+        if let error = gqlResult.error {
+            completionHandler(.failure(error))
+        } else if let value = gqlResult.value {
+            completionHandler(.success(value))
+        }
     }.task!
   }
 }
