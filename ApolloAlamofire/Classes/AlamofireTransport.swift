@@ -26,7 +26,7 @@ public class AlamofireTransport: NetworkTransport {
         headers: HTTPHeaders? = nil,
         loggingEnabled: Bool = false,
         clientName: String = "ApolloAlamofire",
-        clientVersion: String = "0.6.1"
+        clientVersion: String = "0.7.0"
     ) {
         self.session = session
         self.url = url
