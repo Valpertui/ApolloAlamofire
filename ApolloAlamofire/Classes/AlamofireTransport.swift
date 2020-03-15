@@ -44,7 +44,7 @@ public class AlamofireTransport: NetworkTransport {
         ]
         let request = session
             .request(url, method: .post, parameters: body,
-                     encoding: JSONEncoding.default, headers: headers)
+                     encoding: JSONEncoding.default)
             .validate(statusCode: [200])
         if loggingEnabled {
             debugPrint(request)
@@ -61,13 +61,21 @@ public class AlamofireTransport: NetworkTransport {
                     }
                     return .success(GraphQLResponse(operation: operation, body: value))
             }
-            
+
             switch result {
             case let .failure(error):
                 completionHandler(.failure(error))
             case let .success(value):
                 completionHandler(.success(value))
             }
-        }.task!
+        }
     }
+}
+
+extension DataRequest : Cancellable {
+
+    public func cancel() {
+        super.cancel()
+    }
+    
 }
