@@ -6,6 +6,7 @@
 //  Copyright © 2019 CocoaPods. All rights reserved.
 //
 
+import Alamofire
 @testable import ApolloAlamofire
 import XCTest
 
@@ -25,7 +26,7 @@ class ExampleTests: XCTestCase {
     XCTAssertNil(transport.headers)
     XCTAssertFalse(transport.loggingEnabled)
     transport.headers = [:]
-    XCTAssertEqual(transport.headers, [:])
+    XCTAssertEqual(transport.headers?.dictionary, [:])
     transport.loggingEnabled = true
     XCTAssertTrue(transport.loggingEnabled)
   }
