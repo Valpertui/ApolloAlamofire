@@ -13,6 +13,8 @@ import Foundation
 /// to a server, and that uses `Alamofire.session` as the networking
 /// implementation.
 public class AlamofireTransport: NetworkTransport {
+
+  
     let session: Session
     let url: URL
     public var headers: HTTPHeaders?
@@ -36,46 +38,48 @@ public class AlamofireTransport: NetworkTransport {
         self.clientVersion = clientVersion
     }
     
-    public func send<Operation>( operation: Operation, completionHandler: @escaping (Swift.Result<GraphQLResponse<Operation>, Error>) -> () ) -> Cancellable where Operation: GraphQLOperation {
-        let vars: JSONEncodable = operation.variables?.mapValues { $0?.jsonValue }
-        let body: Parameters = [
-            "query": operation.queryDocument,
-            "variables": vars,
-        ]
-        let request = session
-            .request(url, method: .post, parameters: body,
-                     encoding: JSONEncoding.default)
-            .validate(statusCode: [200])
-        if loggingEnabled {
-            debugPrint(request)
-        }
-        return request.responseJSON { response in
-            let result = response.result
-                .flatMap { value -> Result<GraphQLResponse<Operation>, AFError> in
-                    guard let value = value as? JSONObject else {
-                        return .failure(response.error!)
-                    }
-                    if self.loggingEnabled, let data = response.data,
-                        let str = String(data: data, encoding: .utf8) {
-                        print(str)
-                    }
-                    return .success(GraphQLResponse(operation: operation, body: value))
-            }
-
-            switch result {
-            case let .failure(error):
-                completionHandler(.failure(error))
-            case let .success(value):
-                completionHandler(.success(value))
-            }
-        }
+  
+  public func send<Operation>( operation: Operation, completionHandler: @escaping (Swift.Result<GraphQLResponse<Operation.Data>, Error>) -> Void ) -> Cancellable where Operation: GraphQLOperation {
+    let vars: JSONEncodable = operation.variables?.mapValues { $0?.jsonValue }
+    let body: Parameters = [
+      "query": operation.queryDocument,
+      "variables": vars,
+    ]
+    let request = session
+      .request(url, method: .post, parameters: body,
+               encoding: JSONEncoding.default,
+               headers: headers)
+      .validate(statusCode: [200])
+    if loggingEnabled {
+      debugPrint(request)
     }
+    return request.responseJSON { response in
+      let result = response.result
+        .flatMap { value -> Result<GraphQLResponse<Operation.Data>, AFError> in
+          guard let value = value as? JSONObject else {
+            return .failure(response.error!)
+          }
+          if self.loggingEnabled, let data = response.data,
+            let str = String(data: data, encoding: .utf8) {
+            print(str)
+          }
+          return .success(GraphQLResponse(operation: operation, body: value))
+      }
+      
+      switch result {
+      case let .failure(error):
+        completionHandler(.failure(error))
+      case let .success(value):
+        completionHandler(.success(value))
+      }
+    }
+  }
 }
 
 extension DataRequest : Cancellable {
-
-    public func cancel() {
-        super.cancel()
-    }
-    
+  
+  public func cancel() {
+    super.cancel()
+  }
+  
 }
